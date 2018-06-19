@@ -1,0 +1,535 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+
+template <class ValueType>
+class BinaryTreeNode {
+public:
+	explicit BinaryTreeNode(const ValueType &value)
+		: left(nullptr)
+		, right(nullptr)
+		, parent(nullptr)
+	{
+		this->value = value;
+	}
+
+	BinaryTreeNode()
+		: value()
+		, left(nullptr)
+		, right(nullptr)
+		, parent(nullptr)
+	{}
+
+	ValueType getValue() const {
+		return this->value;
+	}
+
+	void setValue(const ValueType &value) {
+		this->value = value;
+	}
+
+	BinaryTreeNode<ValueType> *getLeft() const {
+		return this->left;
+	}
+
+	void setLeft(const ValueType &value) {
+		this->left = new BinaryTreeNode<ValueType>(value);
+	}
+
+	void setLeft(BinaryTreeNode<ValueType> *node) {
+		this->left = node;
+	}
+
+	void removeLeft() {
+		this->left = nullptr;
+	}
+
+	bool hasLeft() const {
+		return this->left != nullptr;
+	}
+
+	BinaryTreeNode<ValueType> *getRight() const {
+		return this->right;
+	}
+
+	void setRight(const ValueType &value) {
+		this->right = new BinaryTreeNode<ValueType>(value);
+	}
+
+	void setRight(BinaryTreeNode<ValueType> *node) {
+		this->right = node;
+	}
+
+	void removeRight() {
+		this->right = nullptr;
+	}
+
+	bool hasRight() const {
+		return this->right != nullptr;
+	}
+
+	void setParent(BinaryTreeNode<ValueType> *node) {
+		this->parent = node;
+	}
+
+	BinaryTreeNode<ValueType> *getParent() const {
+		return this->parent;
+	}
+
+	void removeParent() {
+		this->parent = nullptr;
+	}
+
+	bool operator< (const BinaryTreeNode<ValueType> &that) {
+		return (value < that.value);
+	}
+
+	ValueType& operator*() {
+		return value;
+	}
+	friend BinaryTreeNode<ValueType>* balance(BinaryTreeNode<ValueType>* p) // балансировка узла p
+	{
+		fixheight(p);
+		if (bfactor(p) == 2)
+		{
+			if (bfactor(p->right) < 0)
+				p->right = rotateright(p->right);
+			return rotateleft(p);
+		}
+		if (bfactor(p) == -2)
+		{
+			if (bfactor(p->left) > 0)
+				p->left = rotateleft(p->left);
+			return rotateright(p);
+		}
+		return p; // no need in balance
+	}
+
+	friend int bfactor(BinaryTreeNode<ValueType>* p)
+	{
+		return getheight(p->right) - getheight(p->left);
+	}
+
+	friend void fixheight(BinaryTreeNode<ValueType>* p)
+	{
+		p->height = (getheight(p->left)>getheight(p->right) 
+			? getheight(p->left) : getheight(p->right)) + 1;
+	}
+
+	friend BinaryTreeNode<ValueType>* rotateright(BinaryTreeNode<ValueType>* p) // right round around p
+	{
+		BinaryTreeNode* q = p->left;
+		p->left = q->right;
+		q->right = p;
+		fixheight(p);
+		fixheight(q);
+		return q;
+	}
+
+	friend BinaryTreeNode<ValueType>* rotateleft(BinaryTreeNode<ValueType>* q) // left round around q
+	{
+		BinaryTreeNode* p = q->right;
+		q->right = p->left;
+		p->left = q;
+		fixheight(q);
+		fixheight(p);
+		return p;
+	}
+	
+	friend  unsigned char getheight(BinaryTreeNode<ValueType>* p)
+	{
+		return p ? p->height : 0;
+	}
+
+private:
+	BinaryTreeNode<ValueType> *left;
+	BinaryTreeNode<ValueType> *right;
+	BinaryTreeNode<ValueType> *parent;
+	ValueType value;
+	unsigned char height = 1;
+};
+
+template <class ValueType, class Compare = std::less<ValueType>>
+class BinaryTree {
+
+	template <class T>
+	class Iterator : public std::iterator<std::bidirectional_iterator_tag, T> {
+		friend class BinaryTree;
+	public:
+		Iterator() : pos(nullptr) {}
+
+		explicit Iterator(BinaryTreeNode<T> *node) {
+			pos = node;
+		}
+
+		Iterator(const Iterator &that) {
+			pos = that.pos;
+		}
+
+		~Iterator() = default;
+
+		Iterator& operator= (const Iterator &that) {
+			pos = that.pos;
+			return *this;
+		}
+
+		Iterator& operator++ () {
+			pos = next(pos);
+			return *this;
+		}
+
+		const Iterator operator++ (int) {
+			Iterator copy(*this);
+			operator++();
+			return copy;
+		}
+
+		Iterator& operator-- () {
+			pos = previous(pos);
+			return *this;
+		}
+
+		const Iterator operator-- (int) {
+			Iterator copy(*this);
+			operator--();
+			return copy;
+		}
+
+		bool operator== (const Iterator& other) const {
+			return pos == other.pos;
+		}
+
+		bool operator!= (const Iterator& other) const {
+			return !(*this == other);
+		}
+
+		ValueType& operator*() const {
+			return *(*pos);
+		}
+
+		ValueType* operator-> () {
+			return &(pos->getValue());
+		}
+
+	private:
+		BinaryTreeNode<T> *pos;
+	};
+
+public:
+	typedef Iterator<ValueType> iterator;
+	typedef Iterator<const ValueType> const_iterator;
+
+	BinaryTree()
+		: head(nullptr)
+		, treeSize(0)
+	{}
+
+	explicit BinaryTree(const BinaryTree<ValueType> &that) : head(nullptr), treeSize(0) {
+		if (this == &that) {
+			return;
+		}
+
+		if (that.empty()) {
+			return;
+		}
+
+		assignmentTraversal(that.head);
+	}
+
+	~BinaryTree() {
+		destroyTree(this->head);
+	}
+
+	BinaryTree& operator= (const BinaryTree &other) {
+		destroyTree(head);
+
+		if (this == &other) {
+			return *this;
+		}
+
+		if (other.empty()) {
+			return *this;
+		}
+
+		assignmentTraversal(other.head);
+	}
+
+	template <class InputIt>
+	void assign(InputIt first, InputIt last) {
+		for (InputIt it = first; it != last; it++) {
+			add(*it);
+		}
+	}
+
+	iterator begin() {
+		return iterator(firstNode());
+	}
+
+	iterator end() {
+		return iterator(nullptr);
+	}
+
+	const_iterator cbegin() {
+		return const_iterator(firstNode());
+	}
+
+	const_iterator cend() {
+		return const_iterator(nullptr);
+	}
+
+	iterator insert(const ValueType &value) {
+		add(value);
+		return iterator(searchNode(value));
+	}
+
+	void remove(const ValueType &value) {
+		deleteNode(value);
+	}
+
+	iterator find(const ValueType &value) {
+		return iterator(searchNode(value));
+	}
+
+	const_iterator find(const ValueType &value) const {
+		return iterator(searchNode(value));
+	}
+
+	void add(const ValueType &value) {
+		if (exists(value)) {
+			return;
+		}
+
+		treeSize++;
+
+		if (this->head == nullptr) {
+			this->head = new BinaryTreeNode<ValueType>(value);
+			balance(this->head); 
+		}
+		else {
+			addTo(value, this->head);
+		}
+	}
+
+	size_t size() const {
+		return treeSize;
+	}
+
+	bool empty() const {
+		return head == nullptr;
+	}
+
+	BinaryTreeNode<ValueType>* searchNode(const ValueType &key) const {
+		return searchNode(this->head, key);
+	}
+
+	bool exists(const ValueType &key) {
+		return searchNode(key) != nullptr;
+	}
+
+	BinaryTreeNode<ValueType>* minNode(BinaryTreeNode<ValueType> *node) {
+		if (node->getLeft() == nullptr) {
+			return node;
+		}
+		return minNode(node->getLeft());
+	}
+
+	BinaryTreeNode<ValueType>* maxNode(BinaryTreeNode<ValueType> *node) {
+		if (node->getRight() == nullptr) {
+			return node;
+		}
+		return maxNode(node->getRight());
+	}
+
+	void deleteNode(const ValueType &key) {
+		if (this->head == nullptr || searchNode(key) == nullptr) {
+			return;
+		}
+		treeSize--;
+		deleteNode(searchNode(key), key);
+	}
+
+	static BinaryTreeNode<ValueType>* next(BinaryTreeNode<ValueType> *node) {
+		if (node->hasRight()) {
+			node = node->getRight();
+			while (node->hasLeft()) {
+				node = node->getLeft();
+			}
+
+			return node;
+		}
+
+		BinaryTreeNode<ValueType> *parent = node->getParent();
+
+		while (parent != nullptr && node == parent->getRight()) {
+			node = parent;
+			parent = parent->getParent();
+		}
+
+		if (node->getRight() != parent || (node->getRight() == nullptr && parent == nullptr)) {
+			node = parent;
+		}
+
+		return node;
+	}
+
+	static BinaryTreeNode<ValueType>* previous(BinaryTreeNode<ValueType> *node) {
+		if (node->hasLeft()) {
+			node = node->getLeft();
+			while (node->hasRight()) {
+				node = node->getRight();
+			}
+
+			return node;
+		}
+
+		BinaryTreeNode<ValueType> *parent = node->getParent();
+
+		while (parent != nullptr && node == parent->getLeft()) {
+			node = parent;
+			parent = parent->getParent();
+		}
+
+		if (node->getLeft() != parent || (node->getLeft() == nullptr && parent == nullptr)) {
+			node = parent;
+		}
+
+		return  node;
+	}
+
+	BinaryTreeNode<ValueType>* getHead() const {
+		return this->head;
+	}
+
+private:
+	BinaryTreeNode<ValueType> *head;
+	size_t treeSize;
+
+	BinaryTreeNode<ValueType>* firstNode() {
+		BinaryTreeNode<ValueType>* node = head;
+
+		if (!node) {
+			return node;
+		}
+
+		while (node->hasLeft()) {
+			node = node->getLeft();
+		}
+
+		return node;
+	}
+
+	void assignmentTraversal(BinaryTreeNode<ValueType> *node) {
+		add(node->getValue());
+
+		if (node->hasLeft()) {
+			assignmentTraversal(node->getLeft());
+		}
+
+		if (node->hasRight()) {
+			assignmentTraversal(node->getRight());
+		}
+	}
+
+	BinaryTreeNode<ValueType>* removemin(BinaryTreeNode<ValueType>* p) {
+		// delete min from the tree p
+		if (p->getLeft() == 0)
+			return p->getRight();
+		p->setLeft(removemin(p->getLeft()));
+		return balance(p);
+	}
+
+	BinaryTreeNode<ValueType>* deleteNode(BinaryTreeNode<ValueType>* p, const ValueType k) {
+		// delete k from the tree p 
+		if (!p) return 0;
+		if (k < p->getValue())
+			p->setLeft(deleteNode(p->getLeft(), k));
+		else if (k > p->getValue())
+			p->setRight(deleteNode(p->getRight(), k));
+		else //  k == p->value
+		{
+			BinaryTreeNode<ValueType>* q = p->getLeft();
+			BinaryTreeNode<ValueType>* r = p->getRight();
+			delete p;
+			if (!r) return q;
+			BinaryTreeNode<ValueType>* min = minNode(r);
+			min->setRight(removemin(r));
+			min->setLeft(q);
+			return balance(min);
+		}
+	}
+
+
+	BinaryTreeNode<ValueType>* searchNode(BinaryTreeNode<ValueType> *node, const ValueType &key) const {
+		if (node == nullptr || node->getValue() == key) {
+			return node;
+		}
+
+		if (Compare()(key, node->getValue())) {
+			return searchNode(node->getLeft(), key);
+		}
+		else {
+			return searchNode(node->getRight(), key);
+		}
+	}
+
+	void addTo(const ValueType &value, BinaryTreeNode<ValueType> *curNode) {
+		if (Compare()(value, curNode->getValue())) {
+			if (!curNode->hasLeft()) {
+				curNode->setLeft(value);
+				curNode->getLeft()->setParent(curNode);
+			}
+			else {
+				addTo(value, curNode->getLeft());
+			}
+		}
+		else {
+			if (!curNode->hasRight()) {
+				curNode->setRight(value);
+				curNode->getRight()->setParent(curNode);
+			}
+			else {
+				addTo(value, curNode->getRight());
+			}
+		}
+	}
+
+	void destroyTree(BinaryTreeNode<ValueType> *cur) {
+		treeSize = 0;
+		if (cur == nullptr) {
+			return;
+		}
+		destroyTree(cur->getLeft());
+		destroyTree(cur->getRight());
+		delete cur;
+	}
+};
+
+
+int main() {
+	BinaryTree<int> tree;
+	tree.add(3);
+	tree.add(2);
+	tree.add(4);
+	tree.add(1);
+	tree.add(5);
+
+	BinaryTree<int> tree2;
+	tree2 = tree;
+	BinaryTree<int> tree3(tree2);
+
+
+	for (auto elem : tree3) {
+		std::cout << elem << " ";
+	}
+
+	std::cout << std::endl;
+
+	tree2.deleteNode(4);
+
+	for (auto elem : tree2) {
+		std::cout << elem << " ";
+	}
+
+	system("pause");
+	return 0;
+}
