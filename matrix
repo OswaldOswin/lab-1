@@ -1,0 +1,323 @@
+#include "stdafx.h"
+#include<iostream>
+#include <fstream>
+using namespace std;
+class Matrix {
+private:
+	int n;
+	int m;
+	int **Matr;
+public:
+	Matrix();
+	Matrix(int l, int k);
+	Matrix(int l, int k, int g);
+	~Matrix();
+	void CoutMatr(void);
+	void coutNM(int* a, int* b);
+	int CoutCh(int a, int b);
+	void ChangeCh(int a, int b, int c);
+	Matrix dot(Matrix a);
+	void Transpon(void);
+	friend ostream& operator <<(ostream& os, const Matrix& dat);
+	friend istream& operator >> (istream& os, const Matrix& dat);
+	Matrix operator =(Matrix a);
+	Matrix operator+=(Matrix a);
+	Matrix operator-=(Matrix a);
+	Matrix operator*=(Matrix a);
+	Matrix operator+=( int k);
+	Matrix operator-=( int k);
+	Matrix operator*=( int k);
+	Matrix operator+(Matrix a);
+	Matrix operator-(Matrix a);
+	Matrix operator*(Matrix a);
+	Matrix operator+(int k);
+	Matrix operator-(int k);
+	Matrix operator*(int k);
+	int& operator () (int a, int b);
+};
+Matrix::~Matrix() {
+	for (int i = 0; i <n; i++)
+		delete []Matr[i];
+	delete []Matr;
+	Matr = nullptr;
+}
+Matrix::Matrix() {
+	n = 0;
+	m = 0;
+	Matr = nullptr;
+}
+Matrix::Matrix(int l, int k, int g) {
+	n = l;
+	m = k;
+	if (n < 0 || m < 0)
+		throw "Error";
+	Matr = new int*[n];
+	for (int i = 0; i < n; i++) {
+		Matr[i] = new int[m];
+	}
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < m; j++) {
+			Matr[i][j] = rand() % g;
+		}
+	}
+}
+Matrix::Matrix(int l, int k) {
+	n = l;
+	m = k;
+	if (n < 0 || m < 0)
+		throw "Error";
+	Matr = new int*[n];
+	for (int i = 0; i < n; i++) {
+		Matr[i] = new int[m];
+	}
+}
+int Matrix::CoutCh(int a, int b) {
+	return Matr[a][b];
+}
+void Matrix::ChangeCh(int a, int b, int c) {
+	Matr[a][b] = c;
+}
+void Matrix::coutNM(int* a, int* b) {
+	*a = n;
+	*b = m;
+}
+Matrix Matrix::operator+(Matrix a) {
+	int b,c;
+	a.coutNM(&b, &c);
+	if (this->n != b || this->m != c) {
+		throw "Error";
+	}
+	Matrix New(b, c);
+	for (int i = 0; i < b; i++) {
+		for (int j = 0; j < c; j++) {
+			New.ChangeCh(i, j, a.CoutCh(i, j) + this->Matr[i][j]);
+		}
+	}
+	return New;
+}
+Matrix Matrix::operator-(Matrix a) {
+	int b, c;
+	a.coutNM(&b, &c);
+	if (this->n != b || this->m != c) {
+		throw "Error";
+	}
+	Matrix New(b, c);
+	for (int i = 0; i < b; i++) {
+		for (int j = 0; j < c; j++) {
+			New.ChangeCh(i, j, a.CoutCh(i, j) - this->Matr[i][j]);
+		}
+	}
+	return New;
+}
+Matrix  Matrix::operator =(Matrix a)
+{
+	int b, c;
+	a.coutNM(&b, &c);
+	Matrix New(b, c);
+	for (int i = 0; i < b; i++)
+		for (int j = 0; j < c; j++)
+			New.ChangeCh(i, j, a.CoutCh(i, j));
+	for (int i = 0; i < this->n; i++)
+		delete (this->Matr[i]);
+	delete (this->Matr);
+	this->n = b;
+	this->m = c;
+	this->Matr = New.Matr;
+	return *this;
+}
+Matrix Matrix::operator+=(Matrix a) {
+	int b,c;
+	a.coutNM(&b, &c);
+	if (this->n != b || this->m != c) {
+		throw "Error";
+	}
+	for (int i = 0; i < b; i++) {
+		for (int j = 0; j < c; j++) {
+			this->Matr[i][j]=this->Matr[i][j]+a.CoutCh(i,j);
+		}
+	}
+	return (*this);
+}
+
+Matrix Matrix::operator-=(Matrix a) {
+	int b, c;
+	a.coutNM(&b, &c);
+	if (this->n != b || this->m != c) {
+		throw "Error";
+	}
+	for (int i = 0; i < b; i++) {
+		for (int j = 0; j < c; j++) {
+			this->Matr[i][j] = this->Matr[i][j] - a.CoutCh(i, j);
+		}
+	}
+	return (*this);
+}
+Matrix Matrix::operator*(Matrix a) {
+	int b, c;
+	a.coutNM(&b, &c);
+	if (this->n != b || this->m != c) {
+		throw "Error";
+	}
+	Matrix New(b, c);
+	for (int i = 0; i < b; i++) {
+		for (int j = 0; j < c; j++) {
+			New.ChangeCh(i, j, a.CoutCh(i, j) * this->Matr[i][j]);
+		}
+	}
+	return New;
+}
+Matrix Matrix::operator*=(Matrix a) {
+	int b, c;
+	a.coutNM(&b, &c);
+	if (this->n != b || this->m != c) {
+		throw "Error";
+	}
+	for (int i = 0; i < b; i++) {
+		for (int j = 0; j < c; j++) {
+			this->Matr[i][j] = this->Matr[i][j] * a.CoutCh(i, j);
+		}
+	}
+	return (*this);
+}
+void Matrix::CoutMatr(void) {
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < m; j++) {
+			cout << Matr[i][j];
+		}
+		cout << "\n";
+	}
+}
+Matrix Matrix::dot(Matrix a) {
+	int x, c, sum = 0, min;
+	a.coutNM(&x, &c);
+	if ( m!= c)
+		throw "Error";
+	if (n <= c)
+		min = n;
+	else
+		min = c;
+	Matrix New(n, c);
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < c; j++) {
+			for (int g = 0; g < min; g++) {
+				sum = sum + a.CoutCh(i, g) * (*Matr)[g, j];
+				New.ChangeCh(i, j, sum);
+			}
+			sum = 0;
+		}
+	}
+	return New;
+}
+void Matrix::Transpon(void) {
+	int k;
+	for (int i = 0; i<n; i++)
+		for (int j = 0; j < m; j++) {
+			if (i == j)
+				break;
+			k = (*Matr)[i, j];
+			(*Matr)[i, j] = (*Matr)[j, i];
+			(*Matr)[j, i] = k;
+		}
+}
+ostream& operator << (ostream& ostr, const Matrix& dat) {
+	for (int i = 0; i < dat.n; i++) {
+		for (int j = 0; j < dat.m; j++)
+			ostr << dat.Matr[i][j] << " ";
+		ostr << endl;
+	}
+	return ostr;
+}
+
+istream& operator >> (istream& istr, const Matrix& dat) {
+	for (int i = 0; i < dat.n; i++)
+		for (int j = 0; j < dat.m; j++)
+			istr >> dat.Matr[i][j];
+	return istr;
+}
+Matrix Matrix::operator+=(int k) {
+	for (int i = 0; i < this->n; i++) {
+		for (int j = 0; j < this->m; j++) {
+			this->Matr[i][j] = k + this->Matr[i][j];
+		}
+	}
+	return (*this);
+}
+Matrix Matrix::operator-=(int k) {
+	for (int i = 0; i < this->n; i++) {
+		for (int j = 0; j < this->m; j++) {
+			this->Matr[i][j] = this->Matr[i][j]-k;
+		}
+	}
+	return (*this);
+}
+
+Matrix Matrix::operator*=(int k) {
+	for (int i = 0; i < this->n; i++) {
+		for (int j = 0; j < this->m; j++) {
+			this->Matr[i][j] = k * this->Matr[i][j];
+		}
+	}
+	return (*this);
+}
+int& Matrix::operator()(int n, int  k) {
+	return Matr[n][k];
+}
+
+
+Matrix Matrix::operator+(int k)
+{
+	Matrix New(this->n, this->m);
+	for (int i = 0; i < this->n; i++)
+		for (int j = 0; j < this->m; j++)
+			New.ChangeCh(i,j,this->Matr[i][j] + k);
+	return New;
+}
+
+Matrix Matrix::operator*(int k)
+{
+	Matrix New(this->n, this->m);
+	for (int i = 0; i < this->n; i++)
+		for (int j = 0; j < this->m; j++)
+			New.ChangeCh(i, j, this->Matr[i][j] * k);
+	return New;
+}
+
+Matrix Matrix::operator-(int k)
+{
+	Matrix New(this->n, this->m);
+	for (int i = 0; i < this->n; i++)
+		for (int j = 0; j < this->m; j++)
+			New.ChangeCh(i, j, this->Matr[i][j] - k);
+	return New;
+}
+
+int main()
+{
+	Matrix Pey1(3, 3), Pey2(3, 3), Pey3(3, 3), Pey4(2, 3);
+	ifstream fin("data.in");
+	ofstream fout("data.out");
+	fin >> Pey1;
+	fin >> Pey2;
+	cout << Pey2 << "\n";
+	fout << Pey2;
+	cout << Pey1 << "\n";
+	Pey3 = Pey2;
+	cout << Pey3 << "\n";
+	cout << Pey2 << "\n";
+	Pey3 = Pey1 + Pey2;
+	cout << Pey3 << "\n";
+	Pey4=Pey1.dot(Pey2);
+	cout << Pey4 << "\n";
+	Pey3 *= Pey1;
+	cout << Pey3 << "\n";
+	Pey4.Transpon();
+	cout << Pey4 << "\n";
+	int ex;
+	ex = Pey1(0, 0);
+	cout << ex << "\n";
+	Pey4 = Pey4 + 8;
+	cout << Pey4 << "\n";
+	Pey4 -= 8;
+	cout << Pey4 << "\n";
+	return 0;
+}
